@@ -114,12 +114,42 @@
 
                     <!-- 輸出解析度 -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">輸出解析度 (透明畫布大小)</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">輸出比例與解析度 (透明畫布)</label>
                         <select id="resolutionSelect" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none transition">
-                            <option value="1920x1080" selected>1080p (1920 x 1080)</option>
-                            <option value="2560x1440">2K QHD (2560 x 1440)</option>
-                            <option value="3840x2160">4K UHD (3840 x 2160)</option>
+                            <optgroup label="橫式影片 (標準)">
+                                <option value="1920x1080" selected>16:9 標準橫式 (1920 x 1080)</option>
+                                <option value="2560x1440">16:9 2K QHD (2560 x 1440)</option>
+                                <option value="3840x2160">16:9 4K UHD (3840 x 2160)</option>
+                            </optgroup>
+                            <optgroup label="直式短影音 / 社群">
+                                <option value="1080x1920">9:16 直式短影音 (1080 x 1920)</option>
+                                <option value="1080x1080">1:1 正方形貼文 (1080 x 1080)</option>
+                            </optgroup>
                         </select>
+                    </div>
+
+                    <!-- 畫布位置與邊距 -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">標題位置</label>
+                            <select id="positionSelect" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none transition">
+                                <option value="top-left">左上角</option>
+                                <option value="top-center">上方中央</option>
+                                <option value="top-right">右上角</option>
+                                <option value="center-left">左側中央</option>
+                                <option value="center" selected>正中央</option>
+                                <option value="center-right">右側中央</option>
+                                <option value="bottom-left">左下角 (常用)</option>
+                                <option value="bottom-center">下方中央 (常用)</option>
+                                <option value="bottom-right">右下角</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                邊緣間距: <span id="marginValue" class="text-green-600 font-bold">100</span>px
+                            </label>
+                            <input type="range" id="marginInput" min="0" max="800" value="100" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer mt-1">
+                        </div>
                     </div>
 
                     <!-- 文字大小 -->
@@ -167,13 +197,16 @@
             <div class="w-full lg:w-2/3 flex flex-col gap-6">
                 <!-- 預覽框 -->
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col flex-grow">
-                    <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                    <div class="px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gray-50 gap-2">
                         <h2 class="text-lg font-semibold text-gray-700">即時預覽</h2>
-                        <span id="previewResBadge" class="text-xs text-green-700 bg-green-100 px-2 py-1 rounded border border-green-200">1920x1080 透明背景</span>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="text-xs text-red-600 bg-red-50 px-2 py-1 rounded border border-red-200">紅色虛線為邊界 (不會輸出)</span>
+                            <span id="previewResBadge" class="text-xs text-green-700 bg-green-100 px-2 py-1 rounded border border-green-200">1920x1080 透明背景</span>
+                        </div>
                     </div>
-                    <div class="bg-checkered flex-grow flex items-center justify-center p-4 sm:p-8 overflow-hidden">
-                        <!-- Canvas 將用來繪製圖片，並於預覽時強制 16:9 比例顯示。移除 shadow-lg 避免產生第二層陰影底 -->
-                        <canvas id="previewCanvas" class="w-full aspect-video object-contain" style="max-height: 60vh;"></canvas>
+                    <div class="bg-checkered flex-grow flex items-center justify-center p-4 sm:p-8 overflow-hidden min-h-[400px]">
+                        <!-- Canvas 將用來繪製圖片，加入 border-red-500 border-dashed 顯示輔助邊界 -->
+                        <canvas id="previewCanvas" class="object-contain drop-shadow-md border-2 border-red-500 border-dashed" style="max-width: 100%; max-height: 60vh;"></canvas>
                     </div>
                 </div>
 
@@ -200,6 +233,9 @@
         const sizeInput = document.getElementById('sizeInput');
         const sizeValue = document.getElementById('sizeValue');
         const resolutionSelect = document.getElementById('resolutionSelect');
+        const positionSelect = document.getElementById('positionSelect');
+        const marginInput = document.getElementById('marginInput');
+        const marginValue = document.getElementById('marginValue');
         const previewResBadge = document.getElementById('previewResBadge');
         const strokeRadios = document.getElementsByName('strokeType');
         const layoutRadios = document.getElementsByName('layoutType');
@@ -207,7 +243,7 @@
         const bgColorInput = document.getElementById('bgColorInput');
 
         // 綁定所有輸入變更事件，以觸發重新繪製
-        const inputs = [textInput, iconSelect, fontSelect, boldCheck, sizeInput, textColorInput, bgColorInput, resolutionSelect];
+        const inputs = [textInput, iconSelect, fontSelect, boldCheck, sizeInput, textColorInput, bgColorInput, resolutionSelect, positionSelect, marginInput];
         inputs.forEach(input => {
             input.addEventListener('input', drawCanvas);
             input.addEventListener('change', drawCanvas);
@@ -215,9 +251,12 @@
         strokeRadios.forEach(radio => radio.addEventListener('change', drawCanvas));
         layoutRadios.forEach(radio => radio.addEventListener('change', drawCanvas));
 
-        // 即時更新文字大小標籤
+        // 即時更新文字大小與邊距標籤
         sizeInput.addEventListener('input', (e) => {
             sizeValue.textContent = e.target.value;
+        });
+        marginInput.addEventListener('input', (e) => {
+            marginValue.textContent = e.target.value;
         });
 
         // 取得當前選取的描邊設定
@@ -306,9 +345,30 @@
 
             ctx.clearRect(0, 0, canvasW, canvasH);
 
-            // 計算置中座標
-            const startX = (canvasW - pillWidth) / 2;
-            const startY = (canvasH - pillHeight) / 2;
+            // 取得對齊位置與邊緣間距
+            const position = positionSelect.value;
+            const margin = parseInt(marginInput.value);
+
+            // 計算置中或靠邊座標
+            let startX, startY;
+            
+            // X 軸座標分配
+            if (position.includes('left')) {
+                startX = margin;
+            } else if (position.includes('right')) {
+                startX = canvasW - pillWidth - margin;
+            } else {
+                startX = (canvasW - pillWidth) / 2; // 水平置中
+            }
+
+            // Y 軸座標分配
+            if (position.includes('top')) {
+                startY = margin;
+            } else if (position.includes('bottom')) {
+                startY = canvasH - pillHeight - margin;
+            } else {
+                startY = (canvasH - pillHeight) / 2; // 垂直置中
+            }
 
             // 3. 繪製背景圓角矩形
             ctx.fillStyle = bgColor;
