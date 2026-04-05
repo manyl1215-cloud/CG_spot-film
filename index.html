@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自訂小標題生成器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 預覽區透明背景圖樣，方便檢視圓角與透明邊界 */
+        .bg-checkered {
+            background-color: #f3f4f6;
+            background-image: 
+                linear-gradient(45deg, #e5e7eb 25%, transparent 25%, transparent 75%, #e5e7eb 75%, #e5e7eb),
+                linear-gradient(45deg, #e5e7eb 25%, transparent 25%, transparent 75%, #e5e7eb 75%, #e5e7eb);
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 10px;
+        }
+        
+        /* 美化滾動條與選擇器 */
+        input[type="color"] {
+            -webkit-appearance: none;
+            border: none;
+            width: 100%;
+            height: 40px;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            padding: 0;
+            overflow: hidden;
+        }
+        input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+        input[type="color"]::-webkit-color-swatch {
+            border: none;
+            border-radius: 0.5rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen font-sans text-gray-800">
+
+    <div class="max-w-6xl mx-auto p-4 sm:p-8">
+        <header class="mb-8 text-center sm:text-left">
+            <h1 class="text-3xl font-bold text-gray-900 flex items-center justify-center sm:justify-start gap-2">
+                <span class="text-green-600">🏷️</span> 小標題生成器
+            </h1>
+            <p class="text-gray-500 mt-2">快速製作帶有圖示、自訂字體與描邊效果的精美標題圖片</p>
+        </header>
+
+        <div class="flex flex-col lg:flex-row gap-8">
+            <!-- 左側設定面板 -->
+            <div class="w-full lg:w-1/3 bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                <h2 class="text-xl font-semibold mb-6 text-gray-700 border-b pb-2">自訂樣式參數</h2>
+                
+                <div class="space-y-5">
+                    <!-- 排版方向 -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">排版方向</label>
+                        <div class="flex gap-4">
+                            <label class="flex items-center cursor-pointer">
+                                <input type="radio" name="layoutType" value="horizontal" class="w-4 h-4 text-green-600 focus:ring-green-500" checked>
+                                <span class="ml-2 text-sm text-gray-700">橫式 (左右排列)</span>
+                            </label>
+                            <label class="flex items-center cursor-pointer">
+                                <input type="radio" name="layoutType" value="vertical" class="w-4 h-4 text-green-600 focus:ring-green-500">
+                                <span class="ml-2 text-sm text-gray-700">直式 (上下排列)</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 輸入文字 -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">標題文字</label>
+                        <input type="text" id="textInput" value="限時優惠活動" 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition"
+                            placeholder="請輸入文字...">
+                    </div>
+
+                    <!-- 圖示選擇 -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">小圖示 (Icon)</label>
+                        <select id="iconSelect" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none transition">
+                            <option value="none">不使用圖示</option>
+                            <option value="custom_pin" selected>📍 紅色地標 (立體圖片版)</option>
+                            <option value="🗺️">🗺️ 小地圖</option>
+                            <option value="📞">📞 電話</option>
+                            <option value="💰">💰 金錢</option>
+                            <option value="⭐">⭐ 星星</option>
+                            <option value="📢">📢 公告</option>
+                            <option value="custom_check">☑️ 白底黑勾</option>
+                            <option value="custom_van">📡 衛星轉播車</option>
+                            <option value="custom_camera">🎥 攝影機</option>
+                            <option value="custom_mic">🎤 麥克風</option>
+                        </select>
+                    </div>
+
+                    <!-- 字體選擇 -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">字體</label>
+                            <select id="fontSelect" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none transition">
+                                <option value="'BiauKai', 'DFKai-SB', serif">標楷體</option>
+                                <option value="'MingLiU', 'PMingLiU', serif">細明體</option>
+                                <option value="'Microsoft JhengHei', sans-serif" selected>微軟正黑體</option>
+                                <option value="'Arial', sans-serif">Arial</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center mt-6">
+                            <label class="flex items-center cursor-pointer">
+                                <input type="checkbox" id="boldCheck" class="w-5 h-5 text-green-600 rounded border-gray-300 focus:ring-green-500" checked>
+                                <span class="ml-2 text-sm font-medium text-gray-700">粗體顯示</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 輸出解析度 -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">輸出解析度 (透明畫布大小)</label>
+                        <select id="resolutionSelect" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none transition">
+                            <option value="1920x1080" selected>1080p (1920 x 1080)</option>
+                            <option value="2560x1440">2K QHD (2560 x 1440)</option>
+                            <option value="3840x2160">4K UHD (3840 x 2160)</option>
+                        </select>
+                    </div>
+
+                    <!-- 文字大小 -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            文字大小: <span id="sizeValue" class="text-green-600 font-bold">120</span>px
+                        </label>
+                        <input type="range" id="sizeInput" min="50" max="800" value="120" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                    </div>
+
+                    <!-- 描邊設定 -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">文字描邊 (滾邊)</label>
+                        <div class="flex gap-4">
+                            <label class="flex items-center cursor-pointer">
+                                <input type="radio" name="strokeType" value="white" class="w-4 h-4 text-green-600 focus:ring-green-500" checked>
+                                <span class="ml-2 text-sm text-gray-700">白邊</span>
+                            </label>
+                            <label class="flex items-center cursor-pointer">
+                                <input type="radio" name="strokeType" value="black" class="w-4 h-4 text-green-600 focus:ring-green-500">
+                                <span class="ml-2 text-sm text-gray-700">黑邊</span>
+                            </label>
+                            <label class="flex items-center cursor-pointer">
+                                <input type="radio" name="strokeType" value="none" class="w-4 h-4 text-green-600 focus:ring-green-500">
+                                <span class="ml-2 text-sm text-gray-700">無</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 顏色設定 -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">文字顏色</label>
+                            <input type="color" id="textColorInput" value="#000000">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">底色 (背景)</label>
+                            <input type="color" id="bgColorInput" value="#00FF00"> <!-- 預設綠色去背色 (Chroma Key) -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右側預覽與下載區 -->
+            <div class="w-full lg:w-2/3 flex flex-col gap-6">
+                <!-- 預覽框 -->
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col flex-grow">
+                    <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                        <h2 class="text-lg font-semibold text-gray-700">即時預覽</h2>
+                        <span id="previewResBadge" class="text-xs text-green-700 bg-green-100 px-2 py-1 rounded border border-green-200">1920x1080 透明背景</span>
+                    </div>
+                    <div class="bg-checkered flex-grow flex items-center justify-center p-4 sm:p-8 overflow-hidden">
+                        <!-- Canvas 將用來繪製圖片，並於預覽時強制 16:9 比例顯示。移除 shadow-lg 避免產生第二層陰影底 -->
+                        <canvas id="previewCanvas" class="w-full aspect-video object-contain" style="max-height: 60vh;"></canvas>
+                    </div>
+                </div>
+
+                <!-- 下載按鈕 -->
+                <button onclick="downloadPNG()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-6 rounded-2xl shadow-md transition transform hover:-translate-y-1 active:translate-y-0 flex items-center justify-center gap-2 text-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    下載成 PNG 圖檔
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 取得 DOM 元素
+        const canvas = document.getElementById('previewCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        const textInput = document.getElementById('textInput');
+        const iconSelect = document.getElementById('iconSelect');
+        const fontSelect = document.getElementById('fontSelect');
+        const boldCheck = document.getElementById('boldCheck');
+        const sizeInput = document.getElementById('sizeInput');
+        const sizeValue = document.getElementById('sizeValue');
+        const resolutionSelect = document.getElementById('resolutionSelect');
+        const previewResBadge = document.getElementById('previewResBadge');
+        const strokeRadios = document.getElementsByName('strokeType');
+        const layoutRadios = document.getElementsByName('layoutType');
+        const textColorInput = document.getElementById('textColorInput');
+        const bgColorInput = document.getElementById('bgColorInput');
+
+        // 綁定所有輸入變更事件，以觸發重新繪製
+        const inputs = [textInput, iconSelect, fontSelect, boldCheck, sizeInput, textColorInput, bgColorInput, resolutionSelect];
+        inputs.forEach(input => {
+            input.addEventListener('input', drawCanvas);
+            input.addEventListener('change', drawCanvas);
+        });
+        strokeRadios.forEach(radio => radio.addEventListener('change', drawCanvas));
+        layoutRadios.forEach(radio => radio.addEventListener('change', drawCanvas));
+
+        // 即時更新文字大小標籤
+        sizeInput.addEventListener('input', (e) => {
+            sizeValue.textContent = e.target.value;
+        });
+
+        // 取得當前選取的描邊設定
+        function getStrokeType() {
+            for (const radio of strokeRadios) {
+                if (radio.checked) return radio.value;
+            }
+            return 'white';
+        }
+
+        // 核心繪圖邏輯
+        function drawCanvas() {
+            const text = textInput.value || '請輸入文字';
+            const icon = iconSelect.value;
+            const fontName = fontSelect.value;
+            const isBold = boldCheck.checked ? 'bold ' : '';
+            const fontSize = parseInt(sizeInput.value);
+            const textColor = textColorInput.value;
+            const strokeType = getStrokeType();
+            const bgColor = bgColorInput.value;
+            
+            let layoutType = 'horizontal';
+            for (const radio of layoutRadios) {
+                if (radio.checked) layoutType = radio.value;
+            }
+
+            // 排版間距設定
+            const paddingX = fontSize * 1.2; // 水平內距依據字體大小調整
+            const paddingY = fontSize * 0.6; // 垂直內距依據字體大小調整
+            const gap = fontSize * 0.4;      // 圖示與文字的間距
+
+            // 1. 測量文字與圖示寬度，以決定 Canvas 的精確大小
+            const tempCanvas = document.createElement('canvas');
+            const tCtx = tempCanvas.getContext('2d');
+            const fontString = `${isBold}${fontSize}px ${fontName}`;
+            
+            // 測量文字
+            tCtx.font = fontString;
+            const textWidth = tCtx.measureText(text).width;
+            
+            // 測量圖示 (若有)
+            let iconWidth = 0;
+            let iconHeight = 0;
+            if (icon === 'custom_pin' || icon === 'custom_check') {
+                iconWidth = fontSize * 0.8; // 為自訂圖示保留對應的寬度
+                iconHeight = fontSize * 0.8;
+            } else if (icon === 'custom_mic') {
+                iconWidth = fontSize * 1.0; // 放大麥克風寬度
+                iconHeight = fontSize * 1.2;
+            } else if (icon === 'custom_camera') {
+                iconWidth = fontSize * 1.2; // 放大攝影機寬度
+                iconHeight = fontSize * 1.2;
+            } else if (icon === 'custom_van') {
+                iconWidth = fontSize * 1.6; // 放大轉播車寬度
+                iconHeight = fontSize * 1.2;
+            } else if (icon !== 'none') {
+                tCtx.font = `${fontSize}px Arial, sans-serif`; // 圖示使用基本字型確保 Emoji 正常
+                iconWidth = tCtx.measureText(icon).width;
+                iconHeight = fontSize;
+            }
+
+            // 計算整體寬高 (藥丸尺寸)
+            let pillWidth, pillHeight;
+            if (layoutType === 'horizontal') {
+                const contentWidth = textWidth + (icon !== 'none' ? iconWidth + gap : 0);
+                pillWidth = contentWidth + paddingX * 2;
+                pillHeight = fontSize + paddingY * 2;
+            } else {
+                const charSpacing = fontSize * 1.1; // 直式字元行距
+                const textHeight = text.length > 0 ? text.length * charSpacing - (charSpacing - fontSize) : 0;
+                const contentHeight = textHeight + (icon !== 'none' ? iconHeight + gap : 0);
+                const maxContentWidth = icon !== 'none' ? Math.max(iconWidth, fontSize) : fontSize;
+                
+                // 直式時，內外距稍微反轉讓它看起來像直立的藥丸
+                pillWidth = maxContentWidth + paddingY * 2;
+                pillHeight = contentHeight + paddingX * 2;
+            }
+
+            // 2. 設定 Canvas 大小與解析度
+            const [canvasW, canvasH] = resolutionSelect.value.split('x').map(Number);
+            canvas.width = canvasW;
+            canvas.height = canvasH;
+            
+            // 更新 UI 顯示的解析度標籤
+            previewResBadge.textContent = `${canvasW}x${canvasH} 透明背景`;
+
+            ctx.clearRect(0, 0, canvasW, canvasH);
+
+            // 計算置中座標
+            const startX = (canvasW - pillWidth) / 2;
+            const startY = (canvasH - pillHeight) / 2;
+
+            // 3. 繪製背景圓角矩形
+            ctx.fillStyle = bgColor;
+            ctx.beginPath();
+            if (layoutType === 'horizontal') {
+                ctx.roundRect(startX, startY, pillWidth, pillHeight, pillHeight * 0.2);
+            } else {
+                ctx.roundRect(startX, startY, pillWidth, pillHeight, pillWidth * 0.2); // 依據寬度設定圓角，維持圓潤感
+            }
+            ctx.fill();
+
+            // 4. 準備繪製內容 (設定垂直置中對齊)
+            ctx.textBaseline = 'middle';
+            
+            let currentX, currentY;
+            
+            if (layoutType === 'horizontal') {
+                currentX = startX + paddingX;
+                currentY = startY + pillHeight / 2;
+            } else {
+                currentX = startX + pillWidth / 2;
+                currentY = startY + paddingX; // 直式從上方 padding 開始往下畫
+            }
+
+            // 繪製圖示
+            if (icon !== 'none') {
+                let cx, cy;
+                if (layoutType === 'horizontal') {
+                    cx = currentX + iconWidth / 2;
+                    cy = currentY;
+                } else {
+                    cx = currentX;
+                    cy = currentY + iconHeight / 2;
+                }
+
+                if (icon === 'custom_pin') {
+                    const R = fontSize / 2.8;
+                    const drawCy = cy - 0.3 * R; // 針對地標位置微調
+                    const angle = Math.PI * 0.18; 
+                    
+                    // 左半亮紅色
+                    ctx.fillStyle = '#ff1a1a';
+                    ctx.beginPath();
+                    ctx.arc(cx, drawCy, R, angle, Math.PI - angle, true);
+                    ctx.lineTo(cx, drawCy + R * 1.9); 
+                    ctx.closePath();
+                    ctx.fill();
+
+                    // 右半深紅色
+                    ctx.fillStyle = '#cc0000';
+                    ctx.beginPath();
+                    ctx.arc(cx, drawCy, R, -Math.PI / 2, angle, false); 
+                    ctx.lineTo(cx, drawCy + R * 1.9); 
+                    ctx.lineTo(cx, drawCy - R); 
+                    ctx.closePath();
+                    ctx.fill();
+
+                    // 白色圓孔
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.arc(cx, drawCy, R * 0.45, 0, Math.PI * 2);
+                    ctx.fill();
+
+                } else if (icon === 'custom_check') {
+                    const R = fontSize * 0.45;
+                    
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, R, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.strokeStyle = '#000000';
+                    ctx.lineWidth = fontSize * 0.12; 
+                    ctx.lineCap = 'round';
+                    ctx.lineJoin = 'round';
+                    ctx.beginPath();
+                    ctx.moveTo(cx - R * 0.5, cy);
+                    ctx.lineTo(cx - R * 0.1, cy + R * 0.4);
+                    ctx.lineTo(cx + R * 0.5, cy - R * 0.4);
+                    ctx.stroke();
+
+                } else if (icon === 'custom_camera') {
+                    const R = fontSize * 0.65; // 放大攝影機尺寸 (原 0.45)
+                    
+                    // 攝影機機身 (深灰)
+                    ctx.fillStyle = '#2d3748'; 
+                    ctx.beginPath();
+                    ctx.roundRect(cx - R * 0.5, cy - R * 0.35, R * 0.8, R * 0.7, R * 0.1);
+                    ctx.fill();
+                    
+                    // 攝影機鏡頭 (淺灰)
+                    ctx.fillStyle = '#4a5568';
+                    ctx.beginPath();
+                    ctx.moveTo(cx + R * 0.3, cy - R * 0.15);
+                    ctx.lineTo(cx + R * 0.6, cy - R * 0.3);
+                    ctx.lineTo(cx + R * 0.6, cy + R * 0.3);
+                    ctx.lineTo(cx + R * 0.3, cy + R * 0.15);
+                    ctx.fill();
+                    
+                    // 頂部觀景窗
+                    ctx.fillStyle = '#1a202c';
+                    ctx.beginPath();
+                    ctx.roundRect(cx - R * 0.3, cy - R * 0.5, R * 0.4, R * 0.15, R * 0.05);
+                    ctx.fill();
+                    
+                    // 側邊錄影紅點指示燈
+                    ctx.fillStyle = '#e53e3e';
+                    ctx.beginPath();
+                    ctx.arc(cx - R * 0.1, cy + R * 0.0, R * 0.12, 0, Math.PI * 2);
+                    ctx.fill();
+
+                } else if (icon === 'custom_mic') {
+                    const R = fontSize * 0.6; // 放大麥克風尺寸 (原 0.45)
+                    
+                    // 麥克風音頭 (金屬網罩膠囊狀)
+                    ctx.fillStyle = '#a0aec0'; // 淺灰/銀色
+                    ctx.beginPath();
+                    ctx.roundRect(cx - R * 0.35, cy - R * 0.6, R * 0.7, R * 0.9, R * 0.35);
+                    ctx.fill();
+                    
+                    // 音頭上的橫向金屬網紋 (裝飾線)
+                    ctx.strokeStyle = '#718096'; // 深灰
+                    ctx.lineWidth = R * 0.04;
+                    ctx.beginPath();
+                    ctx.moveTo(cx - R * 0.35, cy - R * 0.3); ctx.lineTo(cx + R * 0.35, cy - R * 0.3);
+                    ctx.moveTo(cx - R * 0.35, cy - R * 0.1); ctx.lineTo(cx + R * 0.35, cy - R * 0.1);
+                    ctx.moveTo(cx - R * 0.35, cy + R * 0.1); ctx.lineTo(cx + R * 0.35, cy + R * 0.1);
+                    ctx.stroke();
+
+                    // 麥克風下半部連接處
+                    ctx.fillStyle = '#2d3748'; // 深黑色
+                    ctx.beginPath();
+                    ctx.roundRect(cx - R * 0.2, cy + R * 0.3, R * 0.4, R * 0.3, R * 0.05);
+                    ctx.fill();
+
+                    // U型防震支架
+                    ctx.strokeStyle = '#1a202c'; // 極黑
+                    ctx.lineWidth = R * 0.12;
+                    ctx.lineCap = 'round';
+                    ctx.beginPath();
+                    ctx.arc(cx, cy + R * 0.1, R * 0.55, 0, Math.PI); // 畫一個向下的半圓
+                    ctx.stroke();
+
+                    // 底部支架主幹
+                    ctx.beginPath();
+                    ctx.moveTo(cx, cy + R * 0.65);
+                    ctx.lineTo(cx, cy + R * 0.9);
+                    ctx.stroke();
+
+                    // 桌面底座
+                    ctx.fillStyle = '#1a202c';
+                    ctx.beginPath();
+                    ctx.roundRect(cx - R * 0.4, cy + R * 0.85, R * 0.8, R * 0.15, R * 0.05);
+                    ctx.fill();
+
+                } else if (icon === 'custom_van') {
+                    const R = fontSize * 0.75; // 大幅放大轉播車尺寸 (原 0.45)
+                    
+                    // 轉播車車身 (白色)
+                    ctx.fillStyle = '#f7fafc';
+                    ctx.beginPath();
+                    ctx.roundRect(cx - R * 0.8, cy - R * 0.1, R * 1.6, R * 0.6, R * 0.15);
+                    ctx.fill();
+                    
+                    // 駕駛座車窗 (淺藍色)
+                    ctx.fillStyle = '#63b3ed';
+                    ctx.beginPath();
+                    ctx.roundRect(cx + R * 0.3, cy, R * 0.4, R * 0.25, R * 0.05);
+                    ctx.fill();
+                    
+                    // 車身藍色裝飾塗裝條
+                    ctx.fillStyle = '#3182ce';
+                    ctx.fillRect(cx - R * 0.8, cy + R * 0.3, R * 1.6, R * 0.1);
+                    
+                    // 前後輪胎 (深黑色)
+                    ctx.fillStyle = '#1a202c';
+                    ctx.beginPath(); ctx.arc(cx - R * 0.4, cy + R * 0.5, R * 0.2, 0, Math.PI * 2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(cx + R * 0.4, cy + R * 0.5, R * 0.2, 0, Math.PI * 2); ctx.fill();
+                    
+                    // 輪胎金屬輪框
+                    ctx.fillStyle = '#cbd5e0';
+                    ctx.beginPath(); ctx.arc(cx - R * 0.4, cy + R * 0.5, R * 0.08, 0, Math.PI * 2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(cx + R * 0.4, cy + R * 0.5, R * 0.08, 0, Math.PI * 2); ctx.fill();
+                    
+                    // 衛星天線升降底座
+                    ctx.fillStyle = '#718096';
+                    ctx.fillRect(cx - R * 0.3, cy - R * 0.4, R * 0.1, R * 0.3);
+                    
+                    // 衛星碟盤弧面
+                    ctx.beginPath();
+                    ctx.arc(cx - R * 0.25, cy - R * 0.4, R * 0.3, Math.PI * 0.7, Math.PI * 1.5);
+                    ctx.lineWidth = R * 0.08;
+                    ctx.lineCap = 'round';
+                    ctx.strokeStyle = '#a0aec0';
+                    ctx.stroke();
+                    
+                    // 接收器訊號支架
+                    ctx.beginPath();
+                    ctx.moveTo(cx - R * 0.25, cy - R * 0.4);
+                    ctx.lineTo(cx - R * 0.05, cy - R * 0.65);
+                    ctx.lineWidth = R * 0.04;
+                    ctx.strokeStyle = '#4a5568';
+                    ctx.stroke();
+                    
+                    // 接收器高頻頭 (紅色)
+                    ctx.fillStyle = '#e53e3e';
+                    ctx.beginPath();
+                    ctx.arc(cx - R * 0.05, cy - R * 0.65, R * 0.06, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // 放射中的訊號波 (紅色弧線)
+                    ctx.beginPath();
+                    ctx.arc(cx - R * 0.05, cy - R * 0.65, R * 0.15, Math.PI * 1.7, Math.PI * 2.1);
+                    ctx.lineWidth = R * 0.03;
+                    ctx.strokeStyle = '#e53e3e';
+                    ctx.stroke();
+
+                } else {
+                    ctx.textAlign = 'center';
+                    ctx.font = `${fontSize}px Arial, sans-serif`;
+                    ctx.fillText(icon, cx, cy);
+                }
+                
+                if (layoutType === 'horizontal') {
+                    currentX += iconWidth + gap;
+                } else {
+                    currentY += iconHeight + gap;
+                }
+            }
+
+            // 5. 繪製文字 (包含描邊與填充)
+            ctx.font = fontString;
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+
+            if (layoutType === 'horizontal') {
+                ctx.textAlign = 'left';
+                
+                if (strokeType !== 'none') {
+                    ctx.lineWidth = fontSize * 0.15; 
+                    ctx.strokeStyle = strokeType === 'black' ? '#000000' : '#ffffff';
+                    ctx.strokeText(text, currentX, currentY);
+                }
+                ctx.fillStyle = textColor;
+                ctx.fillText(text, currentX, currentY);
+                
+            } else {
+                ctx.textAlign = 'center';
+                
+                // 直式排版：將字串拆解為單字，逐行往下畫
+                for (let i = 0; i < text.length; i++) {
+                    const char = text[i];
+                    const charY = currentY + i * (fontSize * 1.1) + fontSize / 2;
+                    
+                    if (strokeType !== 'none') {
+                        ctx.lineWidth = fontSize * 0.15; 
+                        ctx.strokeStyle = strokeType === 'black' ? '#000000' : '#ffffff';
+                        ctx.strokeText(char, currentX, charY);
+                    }
+                    ctx.fillStyle = textColor;
+                    ctx.fillText(char, currentX, charY);
+                }
+            }
+        }
+
+        // 下載圖片邏輯
+        function downloadPNG() {
+            const text = textInput.value || '小標題';
+            const link = document.createElement('a');
+            link.download = `${text}.png`; // 檔名帶入使用者輸入的標題
+            // 匯出高畫質 PNG
+            link.href = canvas.toDataURL('image/png', 1.0);
+            link.click();
+        }
+
+        // 初始化第一次繪製
+        window.onload = drawCanvas;
+        
+        // 確保加載完成後字體也能正確繪製 (避免首次加載字體慢的問題)
+        document.fonts.ready.then(function() {
+            drawCanvas();
+        });
+    </script>
+</body>
+</html>
