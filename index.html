@@ -209,6 +209,8 @@
                                     <option value="solid" selected>純色無漸層</option>
                                     <option value="to-bottom">往下漸隱</option>
                                     <option value="to-top">往上漸隱</option>
+                                    <option value="to-right">往右漸隱 (左深右透)</option>
+                                    <option value="to-left">往左漸隱 (右深左透)</option>
                                 </select>
                             </div>
                         </div>
@@ -584,8 +586,12 @@
                 let grad;
                 if (gradientType === 'to-bottom') {
                     grad = ctx.createLinearGradient(0, startY, 0, startY + pillHeight);
-                } else {
+                } else if (gradientType === 'to-top') {
                     grad = ctx.createLinearGradient(0, startY + pillHeight, 0, startY);
+                } else if (gradientType === 'to-right') {
+                    grad = ctx.createLinearGradient(startX, 0, startX + pillWidth, 0);
+                } else if (gradientType === 'to-left') {
+                    grad = ctx.createLinearGradient(startX + pillWidth, 0, startX, 0);
                 }
                 grad.addColorStop(0, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${opacity})`);
                 grad.addColorStop(1, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0)`);
