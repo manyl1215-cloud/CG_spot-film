@@ -504,7 +504,8 @@
                 iconWidth = fontSize * 1.6; // 放大轉播車寬度
                 iconHeight = fontSize * 1.2;
             } else if (icon !== 'none') {
-                tCtx.font = `${fontSize}px Arial, sans-serif`; // 圖示使用基本字型確保 Emoji 正常
+                // 增強 Emoji 字體支援，讓各系統都能正常顯示符號
+                tCtx.font = `${fontSize}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla", sans-serif`; 
                 iconWidth = tCtx.measureText(icon).width;
                 iconHeight = fontSize;
             }
@@ -670,7 +671,9 @@
 
                 } else {
                     ctx.textAlign = 'center';
-                    ctx.font = `${fontSize}px Arial, sans-serif`;
+                    // 增強 Emoji 字體支援
+                    ctx.font = `${fontSize}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla", sans-serif`;
+                    ctx.fillStyle = textColor; // 確保系統將其判斷為單色字元時，能套用您設定的文字顏色
                     ctx.fillText(icon, cx, cy);
                 }
                 
