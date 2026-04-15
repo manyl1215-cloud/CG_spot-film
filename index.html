@@ -99,9 +99,9 @@
                         </h3>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">標題文字</label>
-                            <input type="text" id="textInput" value="輸入文字" 
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition"
-                                placeholder="請輸入文字...">
+                            <textarea id="textInput" rows="2" 
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition resize-y"
+                                placeholder="請輸入文字... (可換行)">輸入文字</textarea>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">小圖示 (Icon)</label>
@@ -176,6 +176,30 @@
                                 <input type="color" id="textColorInput" value="#000000" class="shadow-sm border border-gray-200">
                             </div>
                         </div>
+
+                        <!-- 陰影設定 -->
+                        <hr class="border-gray-200">
+                        <div class="grid grid-cols-2 gap-4 pt-1">
+                            <div>
+                                <div class="flex justify-between mb-1">
+                                    <label class="block text-sm font-medium text-gray-700">陰影模糊度</label>
+                                    <span class="text-sm text-blue-600 font-bold"><span id="shadowBlurValue">0</span>px</span>
+                                </div>
+                                <input type="range" id="shadowBlurInput" min="0" max="100" value="0" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                            </div>
+                            <div>
+                                <div class="flex justify-between mb-1">
+                                    <label class="block text-sm font-medium text-gray-700">陰影距離</label>
+                                    <span class="text-sm text-blue-600 font-bold"><span id="shadowOffsetValue">0</span>px</span>
+                                </div>
+                                <input type="range" id="shadowOffsetInput" min="0" max="50" value="0" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                            </div>
+                            <div class="col-span-2 sm:col-span-1">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">陰影顏色</label>
+                                <input type="color" id="shadowColorInput" value="#000000" class="shadow-sm border border-gray-200 w-full h-[40px]">
+                            </div>
+                        </div>
+
                     </div>
 
                     <!-- 區塊 3：標題底板 -->
@@ -326,9 +350,18 @@
         const opacityInput = document.getElementById('opacityInput');
         const opacityValue = document.getElementById('opacityValue');
         const gradientSelect = document.getElementById('gradientSelect');
+        const shadowBlurInput = document.getElementById('shadowBlurInput');
+        const shadowBlurValue = document.getElementById('shadowBlurValue');
+        const shadowOffsetInput = document.getElementById('shadowOffsetInput');
+        const shadowOffsetValue = document.getElementById('shadowOffsetValue');
+        const shadowColorInput = document.getElementById('shadowColorInput');
 
         // 綁定所有輸入變更事件，以觸發重新繪製
-        const inputs = [textInput, iconSelect, fontSelect, boldCheck, sizeInput, textColorInput, bgColorInput, resolutionSelect, positionSelect, marginInput, opacityInput, gradientSelect];
+        const inputs = [
+            textInput, iconSelect, fontSelect, boldCheck, sizeInput, textColorInput, 
+            bgColorInput, resolutionSelect, positionSelect, marginInput, opacityInput, 
+            gradientSelect, shadowBlurInput, shadowOffsetInput, shadowColorInput
+        ];
         inputs.forEach(input => {
             input.addEventListener('input', drawCanvas);
             input.addEventListener('change', drawCanvas);
@@ -340,6 +373,8 @@
         sizeInput.addEventListener('input', (e) => sizeValue.textContent = e.target.value);
         marginInput.addEventListener('input', (e) => marginValue.textContent = e.target.value);
         opacityInput.addEventListener('input', (e) => opacityValue.textContent = e.target.value);
+        shadowBlurInput.addEventListener('input', (e) => shadowBlurValue.textContent = e.target.value);
+        shadowOffsetInput.addEventListener('input', (e) => shadowOffsetValue.textContent = e.target.value);
 
         // --- 模板儲存系統 ---
         const TEMPLATE_KEY = 'subtitle_generator_templates';
@@ -380,6 +415,9 @@
                 size: sizeInput.value,
                 stroke: getStrokeType(),
                 textColor: textColorInput.value,
+                shadowBlur: shadowBlurInput.value,
+                shadowOffset: shadowOffsetInput.value,
+                shadowColor: shadowColorInput.value,
                 layout: document.querySelector('input[name="layoutType"]:checked').value,
                 bgColor: bgColorInput.value,
                 gradient: gradientSelect.value,
@@ -409,6 +447,12 @@
             boldCheck.checked = !!settings.bold;
             sizeInput.value = settings.size || 120;
             textColorInput.value = settings.textColor || '#000000';
+            
+            // 載入陰影設定
+            shadowBlurInput.value = settings.shadowBlur || 0;
+            shadowOffsetInput.value = settings.shadowOffset || 0;
+            shadowColorInput.value = settings.shadowColor || '#000000';
+            
             bgColorInput.value = settings.bgColor || '#00FF00';
             gradientSelect.value = settings.gradient || 'solid';
             opacityInput.value = settings.opacity || 100;
@@ -426,6 +470,8 @@
             sizeValue.textContent = settings.size || 120;
             marginValue.textContent = settings.margin || 100;
             opacityValue.textContent = settings.opacity || 100;
+            shadowBlurValue.textContent = settings.shadowBlur || 0;
+            shadowOffsetValue.textContent = settings.shadowOffset || 0;
 
             drawCanvas(); // 套用完畢後重新繪製畫面
         };
@@ -471,6 +517,11 @@
             const strokeType = getStrokeType();
             const bgColor = bgColorInput.value;
             
+            // 陰影參數
+            const shadowBlur = parseInt(shadowBlurInput.value);
+            const shadowOffset = parseInt(shadowOffsetInput.value);
+            const shadowColor = shadowColorInput.value;
+            
             let layoutType = 'horizontal';
             for (const radio of layoutRadios) {
                 if (radio.checked) layoutType = radio.value;
@@ -486,9 +537,23 @@
             const tCtx = tempCanvas.getContext('2d');
             const fontString = `${isBold}${fontSize}px ${fontName}`;
             
-            // 測量文字
+            // 測量文字 (支援多行)
             tCtx.font = fontString;
-            const textWidth = tCtx.measureText(text).width;
+            const lines = text.split('\n');
+            const lineHeight = fontSize * 1.2; // 橫排字距
+            const charSpacing = fontSize * 1.1; // 直排字距
+            
+            let textWidth = 0;
+            let textHeight = 0;
+            
+            if (layoutType === 'horizontal') {
+                textWidth = Math.max(...lines.map(l => tCtx.measureText(l).width));
+                textHeight = lines.length > 0 ? (lines.length - 1) * lineHeight + fontSize : 0;
+            } else {
+                const maxChars = Math.max(...lines.map(l => l.length));
+                textWidth = lines.length > 0 ? (lines.length - 1) * lineHeight + fontSize : 0;
+                textHeight = maxChars > 0 ? (maxChars - 1) * charSpacing + fontSize : 0;
+            }
             
             // 測量圖示 (若有)
             let iconWidth = 0;
@@ -517,12 +582,10 @@
             if (layoutType === 'horizontal') {
                 const contentWidth = textWidth + (icon !== 'none' ? iconWidth + gap : 0);
                 pillWidth = contentWidth + paddingX * 2;
-                pillHeight = fontSize + paddingY * 2;
+                pillHeight = Math.max(textHeight, iconHeight) + paddingY * 2;
             } else {
-                const charSpacing = fontSize * 1.1; // 直式字元行距
-                const textHeight = text.length > 0 ? text.length * charSpacing - (charSpacing - fontSize) : 0;
                 const contentHeight = textHeight + (icon !== 'none' ? iconHeight + gap : 0);
-                const maxContentWidth = icon !== 'none' ? Math.max(iconWidth, fontSize) : fontSize;
+                const maxContentWidth = icon !== 'none' ? Math.max(iconWidth, textWidth) : textWidth;
                 
                 // 直式時，內外距稍微反轉讓它看起來像直立的藥丸
                 pillWidth = maxContentWidth + paddingY * 2;
@@ -569,6 +632,12 @@
             if(startY < 0) startY = 0;
 
             // 3. 繪製背景圓角矩形 (支援透明度與漸層)
+            // 確保畫底板前沒有殘留的文字陰影設定
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+
             const rgb = hexToRgb(bgColor);
             const opacity = parseInt(opacityInput.value) / 100;
             const gradientType = gradientSelect.value;
@@ -613,7 +682,7 @@
                 currentY = startY + paddingX; // 直式從上方 padding 開始往下畫
             }
 
-            // 繪製圖示
+            // 繪製圖示 (不包含陰影，以防複雜路徑破圖)
             if (icon !== 'none') {
                 let cx, cy;
                 if (layoutType === 'horizontal') {
@@ -679,7 +748,7 @@
                     ctx.textAlign = 'center';
                     // 增強 Emoji 字體支援
                     ctx.font = `${fontSize}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla", sans-serif`;
-                    ctx.fillStyle = textColor; // 確保系統將其判斷為單色字元時，能套用您設定的文字顏色
+                    ctx.fillStyle = textColor; 
                     ctx.fillText(icon, cx, cy);
                 }
                 
@@ -690,7 +759,7 @@
                 }
             }
 
-            // 5. 繪製文字 (包含描邊與填充)
+            // 5. 繪製文字 (包含描邊與填充，支援多行與陰影)
             ctx.font = fontString;
             ctx.lineJoin = 'round';
             ctx.lineCap = 'round';
@@ -698,30 +767,84 @@
             if (layoutType === 'horizontal') {
                 ctx.textAlign = 'left';
                 
-                if (strokeType !== 'none') {
-                    ctx.lineWidth = fontSize * 0.15; 
-                    ctx.strokeStyle = strokeType === 'black' ? '#000000' : '#ffffff';
-                    ctx.strokeText(text, currentX, currentY);
-                }
-                ctx.fillStyle = textColor;
-                ctx.fillText(text, currentX, currentY);
+                // 計算多行的起始 Y 座標 (垂直置中)
+                const startTextY = currentY - ((lines.length - 1) * lineHeight) / 2;
+                
+                lines.forEach((line, index) => {
+                    const lineY = startTextY + index * lineHeight;
+                    
+                    // 設定陰影
+                    if (shadowBlur > 0 || shadowOffset > 0) {
+                        ctx.shadowColor = shadowColor;
+                        ctx.shadowBlur = shadowBlur;
+                        ctx.shadowOffsetX = shadowOffset;
+                        ctx.shadowOffsetY = shadowOffset;
+                    }
+
+                    if (strokeType !== 'none') {
+                        ctx.lineWidth = fontSize * 0.15; 
+                        ctx.strokeStyle = strokeType === 'black' ? '#000000' : '#ffffff';
+                        ctx.strokeText(line, currentX, lineY);
+                        
+                        // 畫完描邊後關閉陰影，確保字體內部填充不再重複繪製陰影
+                        ctx.shadowColor = 'transparent';
+                        ctx.shadowBlur = 0;
+                        ctx.shadowOffsetX = 0;
+                        ctx.shadowOffsetY = 0;
+                    }
+                    
+                    ctx.fillStyle = textColor;
+                    ctx.fillText(line, currentX, lineY);
+                    
+                    // 恢復無陰影狀態，避免影響下一行
+                    ctx.shadowColor = 'transparent';
+                    ctx.shadowBlur = 0;
+                    ctx.shadowOffsetX = 0;
+                    ctx.shadowOffsetY = 0;
+                });
                 
             } else {
                 ctx.textAlign = 'center';
                 
-                // 直式排版：將字串拆解為單字，逐行往下畫
-                for (let i = 0; i < text.length; i++) {
-                    const char = text[i];
-                    const charY = currentY + i * (fontSize * 1.1) + fontSize / 2;
-                    
-                    if (strokeType !== 'none') {
-                        ctx.lineWidth = fontSize * 0.15; 
-                        ctx.strokeStyle = strokeType === 'black' ? '#000000' : '#ffffff';
-                        ctx.strokeText(char, currentX, charY);
+                // 直式排版：多行時由右至左排列 (傳統中文直書方向)
+                const startTextX = currentX + ((lines.length - 1) * lineHeight) / 2;
+                
+                lines.forEach((line, colIndex) => {
+                    const colX = startTextX - colIndex * lineHeight;
+                    for (let i = 0; i < line.length; i++) {
+                        const char = line[i];
+                        const charY = currentY + i * charSpacing + fontSize / 2;
+                        
+                        // 設定陰影
+                        if (shadowBlur > 0 || shadowOffset > 0) {
+                            ctx.shadowColor = shadowColor;
+                            ctx.shadowBlur = shadowBlur;
+                            ctx.shadowOffsetX = shadowOffset;
+                            ctx.shadowOffsetY = shadowOffset;
+                        }
+                        
+                        if (strokeType !== 'none') {
+                            ctx.lineWidth = fontSize * 0.15; 
+                            ctx.strokeStyle = strokeType === 'black' ? '#000000' : '#ffffff';
+                            ctx.strokeText(char, colX, charY);
+                            
+                            // 畫完描邊後關閉陰影，確保字體內部填充不再重複繪製陰影
+                            ctx.shadowColor = 'transparent';
+                            ctx.shadowBlur = 0;
+                            ctx.shadowOffsetX = 0;
+                            ctx.shadowOffsetY = 0;
+                        }
+                        
+                        ctx.fillStyle = textColor;
+                        ctx.fillText(char, colX, charY);
+                        
+                        // 恢復無陰影狀態，避免影響下一行
+                        ctx.shadowColor = 'transparent';
+                        ctx.shadowBlur = 0;
+                        ctx.shadowOffsetX = 0;
+                        ctx.shadowOffsetY = 0;
                     }
-                    ctx.fillStyle = textColor;
-                    ctx.fillText(char, currentX, charY);
-                }
+                });
             }
         }
 
