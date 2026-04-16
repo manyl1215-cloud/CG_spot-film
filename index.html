@@ -105,21 +105,52 @@
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">小圖示 (Icon)</label>
-                            <select id="iconSelect" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none transition bg-white">
-                                <option value="none">不使用圖示</option>
-                                <option value="custom_pin" selected>📍 紅色地標 (立體版)</option>
-                                <option value="custom_check">☑️ 白底黑勾</option>
-                                <option value="custom_van">📡 衛星轉播車</option>
-                                <option value="custom_camera">🎥 攝影機</option>
-                                <option value="custom_mic">🎤 麥克風</option>
-                                <option disabled>──────────</option>
-                                <option value="🗺️">🗺️ 小地圖</option>
-                                <option value="📞">📞 電話</option>
-                                <option value="💰">💰 金錢</option>
-                                <option value="⭐">⭐ 星星</option>
-                                <option value="📢">📢 公告</option>
-                            </select>
+                            <div class="flex gap-2 items-center">
+                                <select id="iconSelect" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none transition bg-white">
+                                    <option value="none">不使用圖示</option>
+                                    <option value="custom_pin" selected>📍 紅色地標 (立體版)</option>
+                                    <option value="custom_check">☑️ 白底黑勾</option>
+                                    <option value="custom_van">📡 衛星轉播車</option>
+                                    <option value="custom_camera">🎥 攝影機</option>
+                                    <option value="custom_mic">🎤 麥克風</option>
+                                    <option disabled>──────────</option>
+                                    <option value="🗺️">🗺️ 小地圖</option>
+                                    <option value="📞">📞 電話</option>
+                                    <option value="💰">💰 金錢</option>
+                                    <option value="⭐">⭐ 星星</option>
+                                    <option value="📢">📢 公告</option>
+                                    <option disabled>──────────</option>
+                                    <option value="upload" class="font-bold text-green-700">📤 從電腦上傳...</option>
+                                </select>
+                                <input type="file" id="customIconUpload" accept="image/*" class="hidden">
+                            </div>
                         </div>
+                        
+                        <!-- 圖示微調面板 -->
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                            <div>
+                                <div class="flex justify-between mb-1">
+                                    <label class="block text-xs font-medium text-gray-700">圖示縮放</label>
+                                    <span class="text-xs text-green-600 font-bold"><span id="iconScaleValue">100</span>%</span>
+                                </div>
+                                <input type="range" id="iconScaleInput" min="10" max="300" value="100" class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-green-600">
+                            </div>
+                            <div>
+                                <div class="flex justify-between mb-1">
+                                    <label class="block text-xs font-medium text-gray-700">水平微調</label>
+                                    <span class="text-xs text-green-600 font-bold"><span id="iconOffsetXValue">0</span>px</span>
+                                </div>
+                                <input type="range" id="iconOffsetXInput" min="-200" max="200" value="0" class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-green-600">
+                            </div>
+                            <div>
+                                <div class="flex justify-between mb-1">
+                                    <label class="block text-xs font-medium text-gray-700">垂直微調</label>
+                                    <span class="text-xs text-green-600 font-bold"><span id="iconOffsetYValue">0</span>px</span>
+                                </div>
+                                <input type="range" id="iconOffsetYInput" min="-200" max="200" value="0" class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-green-600">
+                            </div>
+                        </div>
+
                     </div>
 
                     <!-- 區塊 2：文字樣式 -->
@@ -334,6 +365,7 @@
         
         const textInput = document.getElementById('textInput');
         const iconSelect = document.getElementById('iconSelect');
+        const customIconUpload = document.getElementById('customIconUpload');
         const fontSelect = document.getElementById('fontSelect');
         const boldCheck = document.getElementById('boldCheck');
         const sizeInput = document.getElementById('sizeInput');
@@ -355,12 +387,22 @@
         const shadowOffsetInput = document.getElementById('shadowOffsetInput');
         const shadowOffsetValue = document.getElementById('shadowOffsetValue');
         const shadowColorInput = document.getElementById('shadowColorInput');
+        const iconScaleInput = document.getElementById('iconScaleInput');
+        const iconScaleValue = document.getElementById('iconScaleValue');
+        const iconOffsetXInput = document.getElementById('iconOffsetXInput');
+        const iconOffsetXValue = document.getElementById('iconOffsetXValue');
+        const iconOffsetYInput = document.getElementById('iconOffsetYInput');
+        const iconOffsetYValue = document.getElementById('iconOffsetYValue');
+
+        let uploadedIconImage = null;
+        let uploadedIconBase64 = null;
 
         // 綁定所有輸入變更事件，以觸發重新繪製
         const inputs = [
             textInput, iconSelect, fontSelect, boldCheck, sizeInput, textColorInput, 
             bgColorInput, resolutionSelect, positionSelect, marginInput, opacityInput, 
-            gradientSelect, shadowBlurInput, shadowOffsetInput, shadowColorInput
+            gradientSelect, shadowBlurInput, shadowOffsetInput, shadowColorInput,
+            iconScaleInput, iconOffsetXInput, iconOffsetYInput
         ];
         inputs.forEach(input => {
             input.addEventListener('input', drawCanvas);
@@ -369,12 +411,61 @@
         strokeRadios.forEach(radio => radio.addEventListener('change', drawCanvas));
         layoutRadios.forEach(radio => radio.addEventListener('change', drawCanvas));
 
+        // 監聽上傳圖示選擇
+        iconSelect.addEventListener('change', (e) => {
+            if (e.target.value === 'upload') {
+                customIconUpload.click();
+            }
+        });
+
+        // 處理圖片上傳與壓縮 (避免存入 localStorage 時超過容量限制)
+        customIconUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const tempCanvas = document.createElement('canvas');
+                        const MAX_SIZE = 400; // 壓縮至最大 400px 以便存儲
+                        let w = img.width;
+                        let h = img.height;
+                        if (w > MAX_SIZE || h > MAX_SIZE) {
+                            if (w > h) { h = h * (MAX_SIZE / w); w = MAX_SIZE; }
+                            else { w = w * (MAX_SIZE / h); h = MAX_SIZE; }
+                        }
+                        tempCanvas.width = w; 
+                        tempCanvas.height = h;
+                        const tCtx = tempCanvas.getContext('2d');
+                        tCtx.drawImage(img, 0, 0, w, h);
+                        
+                        uploadedIconBase64 = tempCanvas.toDataURL('image/png');
+                        uploadedIconImage = new Image();
+                        uploadedIconImage.onload = () => { drawCanvas(); };
+                        uploadedIconImage.src = uploadedIconBase64;
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                // 如果取消選擇，退回上一個狀態或不使用圖示
+                if(!uploadedIconImage) {
+                    iconSelect.value = 'none';
+                    drawCanvas();
+                }
+            }
+            e.target.value = ''; // 重置 file input，允許重複選同一張圖
+        });
+
         // 即時更新數值標籤
         sizeInput.addEventListener('input', (e) => sizeValue.textContent = e.target.value);
         marginInput.addEventListener('input', (e) => marginValue.textContent = e.target.value);
         opacityInput.addEventListener('input', (e) => opacityValue.textContent = e.target.value);
         shadowBlurInput.addEventListener('input', (e) => shadowBlurValue.textContent = e.target.value);
         shadowOffsetInput.addEventListener('input', (e) => shadowOffsetValue.textContent = e.target.value);
+        iconScaleInput.addEventListener('input', (e) => iconScaleValue.textContent = e.target.value);
+        iconOffsetXInput.addEventListener('input', (e) => iconOffsetXValue.textContent = e.target.value);
+        iconOffsetYInput.addEventListener('input', (e) => iconOffsetYValue.textContent = e.target.value);
 
         // --- 模板儲存系統 ---
         const TEMPLATE_KEY = 'subtitle_generator_templates';
@@ -418,6 +509,10 @@
                 shadowBlur: shadowBlurInput.value,
                 shadowOffset: shadowOffsetInput.value,
                 shadowColor: shadowColorInput.value,
+                customImageBase64: uploadedIconBase64,
+                iconScale: iconScaleInput.value,
+                iconOffsetX: iconOffsetXInput.value,
+                iconOffsetY: iconOffsetYInput.value,
                 layout: document.querySelector('input[name="layoutType"]:checked').value,
                 bgColor: bgColorInput.value,
                 gradient: gradientSelect.value,
@@ -453,6 +548,21 @@
             shadowOffsetInput.value = settings.shadowOffset || 0;
             shadowColorInput.value = settings.shadowColor || '#000000';
             
+            // 處理自訂上傳圖示的載入
+            if (settings.icon === 'upload' && settings.customImageBase64) {
+                uploadedIconBase64 = settings.customImageBase64;
+                uploadedIconImage = new Image();
+                uploadedIconImage.onload = () => { drawCanvas(); };
+                uploadedIconImage.src = uploadedIconBase64;
+            } else {
+                uploadedIconBase64 = null;
+                uploadedIconImage = null;
+            }
+            
+            iconScaleInput.value = settings.iconScale !== undefined ? settings.iconScale : 100;
+            iconOffsetXInput.value = settings.iconOffsetX || 0;
+            iconOffsetYInput.value = settings.iconOffsetY || 0;
+            
             bgColorInput.value = settings.bgColor || '#00FF00';
             gradientSelect.value = settings.gradient || 'solid';
             opacityInput.value = settings.opacity || 100;
@@ -472,6 +582,9 @@
             opacityValue.textContent = settings.opacity || 100;
             shadowBlurValue.textContent = settings.shadowBlur || 0;
             shadowOffsetValue.textContent = settings.shadowOffset || 0;
+            iconScaleValue.textContent = settings.iconScale !== undefined ? settings.iconScale : 100;
+            iconOffsetXValue.textContent = settings.iconOffsetX || 0;
+            iconOffsetYValue.textContent = settings.iconOffsetY || 0;
 
             drawCanvas(); // 套用完畢後重新繪製畫面
         };
@@ -522,6 +635,11 @@
             const shadowOffset = parseInt(shadowOffsetInput.value);
             const shadowColor = shadowColorInput.value;
             
+            // 圖示微調參數
+            const iconScale = parseInt(iconScaleInput.value) / 100;
+            const iconOffsetX = parseInt(iconOffsetXInput.value);
+            const iconOffsetY = parseInt(iconOffsetYInput.value);
+            
             let layoutType = 'horizontal';
             for (const radio of layoutRadios) {
                 if (radio.checked) layoutType = radio.value;
@@ -558,23 +676,28 @@
             // 測量圖示 (若有)
             let iconWidth = 0;
             let iconHeight = 0;
-            if (icon === 'custom_pin' || icon === 'custom_check') {
-                iconWidth = fontSize * 0.8; // 為自訂圖示保留對應的寬度
-                iconHeight = fontSize * 0.8;
+            if (icon === 'upload' && uploadedIconImage) {
+                const baseIconHeight = fontSize * 1.2 * iconScale;
+                const aspect = uploadedIconImage.width / uploadedIconImage.height;
+                iconHeight = baseIconHeight;
+                iconWidth = baseIconHeight * aspect;
+            } else if (icon === 'custom_pin' || icon === 'custom_check') {
+                iconWidth = fontSize * 0.8 * iconScale; 
+                iconHeight = fontSize * 0.8 * iconScale;
             } else if (icon === 'custom_mic') {
-                iconWidth = fontSize * 1.0; // 放大麥克風寬度
-                iconHeight = fontSize * 1.2;
+                iconWidth = fontSize * 1.0 * iconScale; 
+                iconHeight = fontSize * 1.2 * iconScale;
             } else if (icon === 'custom_camera') {
-                iconWidth = fontSize * 1.2; // 放大攝影機寬度
-                iconHeight = fontSize * 1.2;
+                iconWidth = fontSize * 1.2 * iconScale; 
+                iconHeight = fontSize * 1.2 * iconScale;
             } else if (icon === 'custom_van') {
-                iconWidth = fontSize * 1.6; // 放大轉播車寬度
-                iconHeight = fontSize * 1.2;
+                iconWidth = fontSize * 1.6 * iconScale; 
+                iconHeight = fontSize * 1.2 * iconScale;
             } else if (icon !== 'none') {
-                // 增強 Emoji 字體支援，讓各系統都能正常顯示符號
-                tCtx.font = `${fontSize}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla", sans-serif`; 
+                // 增強 Emoji 字體支援，讓各系統都能正常顯示符號，並套用縮放比例
+                tCtx.font = `${fontSize * iconScale}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla", sans-serif`; 
                 iconWidth = tCtx.measureText(icon).width;
-                iconHeight = fontSize;
+                iconHeight = fontSize * iconScale;
             }
 
             // 計算整體寬高 (藥丸尺寸)
@@ -686,15 +809,18 @@
             if (icon !== 'none') {
                 let cx, cy;
                 if (layoutType === 'horizontal') {
-                    cx = currentX + iconWidth / 2;
-                    cy = currentY;
+                    cx = currentX + iconWidth / 2 + iconOffsetX;
+                    cy = currentY + iconOffsetY;
                 } else {
-                    cx = currentX;
-                    cy = currentY + iconHeight / 2;
+                    cx = currentX + iconOffsetX;
+                    cy = currentY + iconHeight / 2 + iconOffsetY;
                 }
 
-                if (icon === 'custom_pin') {
-                    const R = fontSize / 2.8;
+                if (icon === 'upload' && uploadedIconImage) {
+                    ctx.drawImage(uploadedIconImage, cx - iconWidth / 2, cy - iconHeight / 2, iconWidth, iconHeight);
+
+                } else if (icon === 'custom_pin') {
+                    const R = (fontSize / 2.8) * iconScale;
                     const drawCy = cy - 0.3 * R; 
                     const angle = Math.PI * 0.18; 
                     
@@ -706,21 +832,21 @@
                     ctx.beginPath(); ctx.arc(cx, drawCy, R * 0.45, 0, Math.PI * 2); ctx.fill();
 
                 } else if (icon === 'custom_check') {
-                    const R = fontSize * 0.45;
+                    const R = fontSize * 0.45 * iconScale;
                     ctx.fillStyle = '#ffffff';
                     ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fill();
-                    ctx.strokeStyle = '#000000'; ctx.lineWidth = fontSize * 0.12; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+                    ctx.strokeStyle = '#000000'; ctx.lineWidth = fontSize * 0.12 * iconScale; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
                     ctx.beginPath(); ctx.moveTo(cx - R * 0.5, cy); ctx.lineTo(cx - R * 0.1, cy + R * 0.4); ctx.lineTo(cx + R * 0.5, cy - R * 0.4); ctx.stroke();
 
                 } else if (icon === 'custom_camera') {
-                    const R = fontSize * 0.65; 
+                    const R = fontSize * 0.65 * iconScale; 
                     ctx.fillStyle = '#2d3748'; ctx.beginPath(); ctx.roundRect(cx - R * 0.5, cy - R * 0.35, R * 0.8, R * 0.7, R * 0.1); ctx.fill();
                     ctx.fillStyle = '#4a5568'; ctx.beginPath(); ctx.moveTo(cx + R * 0.3, cy - R * 0.15); ctx.lineTo(cx + R * 0.6, cy - R * 0.3); ctx.lineTo(cx + R * 0.6, cy + R * 0.3); ctx.lineTo(cx + R * 0.3, cy + R * 0.15); ctx.fill();
                     ctx.fillStyle = '#1a202c'; ctx.beginPath(); ctx.roundRect(cx - R * 0.3, cy - R * 0.5, R * 0.4, R * 0.15, R * 0.05); ctx.fill();
                     ctx.fillStyle = '#e53e3e'; ctx.beginPath(); ctx.arc(cx - R * 0.1, cy + R * 0.0, R * 0.12, 0, Math.PI * 2); ctx.fill();
 
                 } else if (icon === 'custom_mic') {
-                    const R = fontSize * 0.6; 
+                    const R = fontSize * 0.6 * iconScale; 
                     ctx.fillStyle = '#a0aec0'; ctx.beginPath(); ctx.roundRect(cx - R * 0.35, cy - R * 0.6, R * 0.7, R * 0.9, R * 0.35); ctx.fill();
                     ctx.strokeStyle = '#718096'; ctx.lineWidth = R * 0.04; ctx.beginPath();
                     ctx.moveTo(cx - R * 0.35, cy - R * 0.3); ctx.lineTo(cx + R * 0.35, cy - R * 0.3);
@@ -732,7 +858,7 @@
                     ctx.fillStyle = '#1a202c'; ctx.beginPath(); ctx.roundRect(cx - R * 0.4, cy + R * 0.85, R * 0.8, R * 0.15, R * 0.05); ctx.fill();
 
                 } else if (icon === 'custom_van') {
-                    const R = fontSize * 0.75; 
+                    const R = fontSize * 0.75 * iconScale; 
                     ctx.fillStyle = '#f7fafc'; ctx.beginPath(); ctx.roundRect(cx - R * 0.8, cy - R * 0.1, R * 1.6, R * 0.6, R * 0.15); ctx.fill();
                     ctx.fillStyle = '#63b3ed'; ctx.beginPath(); ctx.roundRect(cx + R * 0.3, cy, R * 0.4, R * 0.25, R * 0.05); ctx.fill();
                     ctx.fillStyle = '#3182ce'; ctx.fillRect(cx - R * 0.8, cy + R * 0.3, R * 1.6, R * 0.1);
@@ -747,11 +873,12 @@
                 } else {
                     ctx.textAlign = 'center';
                     // 增強 Emoji 字體支援
-                    ctx.font = `${fontSize}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla", sans-serif`;
+                    ctx.font = `${fontSize * iconScale}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla", sans-serif`;
                     ctx.fillStyle = textColor; 
                     ctx.fillText(icon, cx, cy);
                 }
                 
+                // 排版推進 (不吃位移，維持整體置中感)
                 if (layoutType === 'horizontal') {
                     currentX += iconWidth + gap;
                 } else {
